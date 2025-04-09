@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="jp">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>소스 그랩툴</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <script src="/js/script.js"></script>
+</head>
+<body>
+<div class="container">
+    <!-- 사이드바 -->
+    <div class="sidebar">
+        <h2>Repository List</h2>
+        <!--<div th:each="repoName : ${topContents.getRepositoryName()}" th:text="${repoName}" class="item" onclick="toggleRepository(this)"></div>-->
+    </div>
+
+    <!-- 메인 -->
+    <div class="main">
+        <div class="header">
+            <div class="selected-repository">
+                <span>선택한 Repository</span>
+                <!-- 선택된 항목이 여기에 추가됨 -->
+            </div>
+        </div>
+
+        <!-- 검색 옵션 -->
+        <div class="search-options">
+            <h4>검색 옵션</h4>
+
+            <div class="option-group">
+                <!-- 파일 단위 검색 or 행 단위 검색 -->
+                <div class="option">
+                    <label for="searchType">검색 유형:</label>
+                    <select id="searchType" class="styled-select" onchange="toggleResarchOption()">
+                        <option value="line">행 단위 검색</option>
+                        <option value="file">파일 단위 검색</option>
+                    </select>
+                </div>
+
+                <!-- 대소문자 구분 옵션 -->
+                <div class="option">
+                    <label for="caseSensitive">대소문자 구분:</label>
+                    <select id="caseSensitive" class="styled-select">
+                        <option value="case">O</option>
+                        <option value="ignore">X</option>
+                    </select>
+                </div>
+
+                <!-- 확장자 선택 -->
+                <div class="option" id="extensionOption" style="display: none">
+                    <label for="fileExtension">확장자 선택:</label>
+                    <select id="fileExtension" class="styled-select">
+                        <!-- 첫 번째 항목은 고정된 옵션 -->
+                        <option value="none">none</option>
+                        <!-- topContents 리스트에서 값을 동적으로 출력 -->
+                        <!--<option th:each="extension : ${topContents.getExtensions()}" th:value="${extension.replace('.', '')}" th:text="${extension}"></option>-->
+                    </select>
+                </div>
+
+                <!-- 결과 내 재검색 옵션 -->
+                <div class="option-checkbox" id="reSearchOption">
+                    <input type="checkbox" id="searchWithinResults" name="searchWithinResults"
+                           onclick="toggleExtensionOption()">
+                    <label for="searchWithinResults">표시 결과 내 재검색</label>
+                </div>
+                <!-- 총 결과 표시 -->
+                <div id="resultsSummary" class="results-summary">
+                    <!-- JavaScript로 검색 결과 수와 총 페이지 수가 여기에 추가될 것 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 검색 바 -->
+        <div class="search-bar">
+            <input type="text" placeholder="단어" id="searchWord" onkeydown="triggerSearchOnEnter(event)">
+            <button onclick="search()">검색</button>
+        </div>
+
+        <!-- 테이블 컨테이너 -->
+        <div class="table-container">
+            <!-- 테이블 헤더 -->
+            <div class="table-wrapper">
+                <table class="table-header">
+                    <thead>
+                    <tr>
+                        <th>리포지토리명</th>
+                        <th>파일명</th>
+                        <th>라인 수</th>
+                        <th>라인 내용</th>
+                    </tr>
+                    </thead>
+                    <!-- 검색 결과 -->
+                    <tbody class="search-results">
+                    <!-- JavaScript로 검색 결과가 추가될 부분 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 페이지네이션 -->
+        <div class="pagination">
+            <button onclick="nextPage()">Next</button>
+            <!-- Hidden Inputs for Pagination -->
+            <input type="hidden" id="hiddenSearchWord">
+            <input type="hidden" id="hiddenSearchType">
+            <input type="hidden" id="hiddenCaseSensitive">
+            <input type="hidden" id="hiddenFileExtension">
+            <input type="hidden" id="hiddenRepositoryNames">
+        </div>
+    </div>
+</div>
+<!-- 모달 추가 -->
+<div id="loadingModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <img th:src="@{/images/loading.gif}" th:alt="Loading..." /> <!-- 여기에 로딩 중 이미지 삽입 -->
+        <p>검색 중...</p>
+    </div>
+</div>
+</body>
+</html>
