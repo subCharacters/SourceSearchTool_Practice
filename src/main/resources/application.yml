@@ -15,3 +15,7 @@ spring:
     console:
       path: /h2-console
       enabled: true
+file:
+  extensions: .java,.html,.css,.jsp,.xml,.properties
+  targetFolderName: gitProjects
+  excludedFolder: src\test,out,gradle,build,.idea,.gradle,.git
