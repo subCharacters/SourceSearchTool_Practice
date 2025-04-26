@@ -26,7 +26,6 @@ public class IndexingJobConfiguration {
     public Job indexingJob(Step indexingStep) {
         return new JobBuilder("indexingJob", jobRepository)
                 .start(indexingStep)
-                .incrementer(new RunIdIncrementer())
                 .build();
     }
 

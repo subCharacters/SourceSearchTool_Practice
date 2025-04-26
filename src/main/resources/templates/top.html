@@ -12,7 +12,7 @@
     <!-- 사이드바 -->
     <div class="sidebar">
         <h2>Repository List</h2>
-        <!--<div th:each="repoName : ${topContents.getRepositoryName()}" th:text="${repoName}" class="item" onclick="toggleRepository(this)"></div>-->
+        <div th:each="repoName : ${topContents.getRepositoryName()}" th:text="${repoName}" class="item" onclick="toggleRepository(this)"></div>
     </div>
 
     <!-- 메인 -->
@@ -54,7 +54,7 @@
                         <!-- 첫 번째 항목은 고정된 옵션 -->
                         <option value="none">none</option>
                         <!-- topContents 리스트에서 값을 동적으로 출력 -->
-                        <!--<option th:each="extension : ${topContents.getExtensions()}" th:value="${extension.replace('.', '')}" th:text="${extension}"></option>-->
+                        <option th:each="extension : ${topContents.getExtensions()}" th:value="${extension.replace('.', '')}" th:text="${extension}"></option>
                     </select>
                 </div>
 

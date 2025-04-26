@@ -28,6 +28,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    implementation 'org.apache.lucene:lucene-core:9.9.2'
+    implementation 'org.apache.lucene:lucene-analysis-common:9.9.2'
+    implementation 'org.apache.lucene:lucene-queryparser:9.9.2'
+
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'com.h2database:h2'

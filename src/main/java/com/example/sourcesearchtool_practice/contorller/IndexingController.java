@@ -21,6 +21,7 @@ public class IndexingController {
     public ResponseEntity<String> runIndexing(@RequestParam String sourcePath) throws Exception {
         JobParameters jobParameters = new JobParametersBuilder()
                 .addString("sourcePath", sourcePath)
+                .addLong("run.id", System.currentTimeMillis())
                 .toJobParameters();
 
         jobLauncher.run(indexingJob, jobParameters);

@@ -4,3 +4,6 @@ Content-Type: application/x-www-form-urlencoded
 
 sourcePath=C:\Users\wldns\IdeaProjects
 ###
+GET http://localhost:8080/search?project=DesignPattern_Java&keyword=our&maxHits=5000
+###
+

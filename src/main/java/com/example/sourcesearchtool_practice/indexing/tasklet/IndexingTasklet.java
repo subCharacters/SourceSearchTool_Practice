@@ -1,6 +1,17 @@
 package com.example.sourcesearchtool_practice.indexing.tasklet;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.ngram.NGramTokenFilter;
+import org.apache.lucene.analysis.ngram.NGramTokenizer;
+import org.apache.lucene.analysis.standard.StandardTokenizer;
+import org.apache.lucene.document.*;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
 import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
@@ -11,12 +22,18 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Component
@@ -48,6 +65,9 @@ public class IndexingTasklet implements Tasklet {
         if (!rootDir.exists() || !rootDir.isDirectory()) {
             throw new IllegalArgumentException("유효한 폴더가 아님: " + sourcePath);
         }
+
+        // 기존 인덱스 정리
+        cleanUpOldIndexes(sourcePath);
 
         // 프로젝트 폴더 목록 추출
         File[] projectDirs = rootDir.listFiles(File::isDirectory);
@@ -84,14 +104,72 @@ public class IndexingTasklet implements Tasklet {
         return RepeatStatus.FINISHED;
     }
 
+    private void cleanUpOldIndexes(String sourcePath) throws IOException {
+        File sourceRoot = new File(sourcePath);
+        File[] currentProjects = sourceRoot.listFiles(File::isDirectory);
+
+        if (currentProjects == null) return;
+
+        Set<String> currentProjectNames = Arrays.stream(currentProjects)
+                .map(File::getName)
+                .collect(Collectors.toSet());
+
+        File indexRoot = new File("index");
+        if (!indexRoot.exists()) {
+            return; // 인덱스 폴더가 아예 없으면 할 게 없음
+        }
+
+        File[] indexedProjects = indexRoot.listFiles(File::isDirectory);
+        if (indexedProjects == null) return;
+
+        for (File indexed : indexedProjects) {
+            if (!currentProjectNames.contains(indexed.getName())) {
+                // 인덱싱할 프로젝트가 아닌 경우 삭제
+                deleteDirectory(indexed);
+                log.info("삭제된 프로젝트 인덱스 정리: {}", indexed.getName());
+            }
+        }
+    }
+
+    private void deleteDirectory(File dir) throws IOException {
+        if (dir.isDirectory()) {
+            File[] files = dir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    deleteDirectory(file);
+                }
+            }
+        }
+        if (!dir.delete()) {
+            throw new IOException("Failed to delete: " + dir.getAbsolutePath());
+        }
+    }
+
     // TODO: 실제 Lucene 인덱싱 로직 구현 필요
     private void indexProject(File projectDir) throws Exception {
         // 프로젝트 루트 기준으로 하위 파일 재귀 탐색,
         // 확장자 및 제외 폴더 필터 적용,
         // 각 라인별로 Lucene 인덱싱 수행
-        try {
+        // 인덱스 저장 경로: index/프로젝트명
+        Path indexPath = Paths.get("index", projectDir.getName());
+        Directory directory = FSDirectory.open(indexPath);
+
+        // 2-gram 분석기 구성
+        Analyzer analyzer = new Analyzer() {
+            @Override
+            protected TokenStreamComponents createComponents(String fieldName) {
+                // NGramTokenizer(minGram=2, maxGram=2): 2글자씩 자름
+                return new TokenStreamComponents(new NGramTokenizer(2, 2));
+            }
+        };
+
+        IndexWriterConfig config = new IndexWriterConfig(analyzer);
+        config.setOpenMode(IndexWriterConfig.OpenMode.CREATE); // 인덱스 초기화
+        IndexWriter writer = new IndexWriter(directory, config);
+
+        try (Stream<Path> fileStream = Files.walk(projectDir.toPath())) {
             // 해당 프로젝트 폴더 하위의 모든 파일을 재귀적으로 탐색
-            Files.walk(projectDir.toPath())
+            fileStream
                     .filter(Files::isRegularFile) // 디렉토리가 아닌 파일만 통과
                     .filter(path -> {
                         String filename = path.getFileName().toString().toLowerCase();
@@ -103,10 +181,36 @@ public class IndexingTasklet implements Tasklet {
                     })
                     .forEach(path -> {
                         log.info("인덱싱 대상 파일: {}", path.toAbsolutePath());
+                        try {
+                            List<String> lines = Files.readAllLines(path);
+                            for (int i = 0; i < lines.size(); i++) {
+                                String line = lines.get(i).trim();
+                                if (line.isEmpty()) continue; // 공백 줄 제외
+                                // 루신 문서 생성 및 필드 설정
+                                Document doc = new Document();
+
+                                doc.add(new StringField("repositoryName", projectDir.getName(), Field.Store.YES)); // 프로젝트명
+                                doc.add(new StringField("fileName", path.getFileName().toString(), Field.Store.YES)); // 파일명
+                                doc.add(new StringField("filePath", path.toString(), Field.Store.YES)); // 전체 경로
+                                doc.add(new IntPoint("lineNumber", i + 1)); // 검색용 숫자 필드
+                                doc.add(new StoredField("lineNumber", i + 1)); // 표시용 저장 필드
+                                doc.add(new TextField("lineContent", line, Field.Store.YES)); // 2-gram 분석용 줄 내용
+
+                                // 인덱스에 문서 추가
+                                writer.addDocument(doc);
+                            }
+                        } catch (IOException e) {
+                            log.error("인덱싱 실패: {}", path, e);
+                        }
                     });
 
         } catch (IOException e) {
             log.error("프로젝트 내 파일 탐색 실패: {}", projectDir.getAbsolutePath(), e);
         }
+
+        // 인덱스 커밋 및 종료
+        writer.commit();
+        writer.close();
+        log.info("인덱스 저장 완료: {}", indexPath);
     }
 }
