@@ -321,10 +321,19 @@ function displaySearchResults(data, append = false) {
         row.appendChild(repoCell);
 
         const fileCell = document.createElement('td');
-        const path = item.filePath;
-        const startIndex = path.indexOf('gitProjects\\') + 'gitProjects\\'.length;
-        const pathTextContent = path.substring(startIndex);
+        const repoName = item.repositoryName;
+        //const path = item.filePath;
+        // const startIndex = path.indexOf('gitProjects\\') + 'gitProjects\\'.length;
+        const path = item.filePath.replace(/\\/g, '/');
+        const repoIndex = path.indexOf('/' + repoName + '/');
+        let pathTextContent = path;
+        if (repoIndex >= 0) {
+            pathTextContent = path.substring(repoIndex + 1); // '/' 제외하고 repoName부터 시작
+        }
+
+        //const pathTextContent = path.substring(startIndex);
         fileCell.textContent = pathTextContent;
+
         row.appendChild(fileCell);
 
         const lineNumCell = document.createElement('td');
@@ -345,11 +354,10 @@ function displaySearchResults(data, append = false) {
         });
 
         resultsContainer.appendChild(row);
-
-        // doc id 셋팅
-        document.getElementById('hiddenLastScoreDocId').value = data.docInfoDto.lastScoreDocId;
-        document.getElementById('hiddenDocScore').value = data.docInfoDto.docScore;
     });
+    // doc id 셋팅
+    document.getElementById('hiddenLastScoreDocId').value = data.docInfoDto.lastScoreDocId;
+    document.getElementById('hiddenDocScore').value = data.docInfoDto.docScore;
 
     console.log("data create")
 

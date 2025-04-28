@@ -25,9 +25,4 @@ public class ResponseDto<T> {
     public static <T> ResponseEntity<ResponseDto> fail(HttpStatus httpStatus, T data, ErrorDto errorDto, long totalCnt, DocInfoDto docInfoDto) {
         return ResponseEntity.status(httpStatus).body(new ResponseDto(false, data, errorDto, totalCnt, docInfoDto));
     }
-
-    static class ErrorDto {
-        private String errorField;
-        private String errorMessage;
-    }
 }

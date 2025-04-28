@@ -2,6 +2,7 @@ package com.example.sourcesearchtool_practice.service;
 
 import com.example.sourcesearchtool_practice.dto.DocInfoDto;
 import com.example.sourcesearchtool_practice.dto.SearchResultDto;
+import com.example.sourcesearchtool_practice.exception.NoSearchResultException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.ngram.NGramTokenizer;
@@ -117,10 +118,10 @@ public class LuceneSimpleSearcherService {
         // 총 건수 가져오기
         long totalCount = hits.totalHits.value;
 
-        // 마지막 ScoreDocId 계산
-        int newLastScoreDocId = (hits.scoreDocs.length > 0)
-                ? hits.scoreDocs[hits.scoreDocs.length - 1].doc
-                : -1;
+        if (hits.scoreDocs.length <= 0) {
+            multiReader.close();
+            throw new NoSearchResultException("검색 결과가 없습니다.");
+        }
 
         ScoreDoc lastDoc = hits.scoreDocs[hits.scoreDocs.length - 1];
 
