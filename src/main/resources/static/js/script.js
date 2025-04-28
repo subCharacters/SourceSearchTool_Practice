@@ -189,7 +189,6 @@ function search() {
     document.getElementById('hiddenCaseSensitive').value = caseSensitive;
     document.getElementById('hiddenFileExtension').value = fileExtension;
     document.getElementById('hiddenRepositoryNames').value = JSON.stringify(selectedRepositories);
-    currentPage = 0;
 
     console.log(searchType);
     console.log(caseSensitive);
@@ -204,13 +203,13 @@ function search() {
         },
         body: JSON.stringify(
             {
-                "keyword": searchWord
-                // "searchType": searchType,
-                // "caseSensitive": caseSensitive,
-                // "fileExtension": fileExtension,
-                // "searchWithinResults": searchWithinResults,
-                // "repositoryNames": selectedRepositories,
-                // "page": currentPage
+                "searchWord": searchWord,
+                "searchType": searchType,
+                "caseSensitive": caseSensitive,
+                "fileExtension": fileExtension,
+                "searchWithinResults": searchWithinResults,
+                "repositoryNames": selectedRepositories,
+                "lastScoreDocId": 0
             }
         )
     })
@@ -236,11 +235,12 @@ function nextPage() {
         return;
     }  // 이미 마지막 페이지라면 동작하지 않음
 */
-    currentPage++;  // 페이지 번호 증가
-    nextPageSearch(currentPage);
+    const lastScoreDocId = document.getElementById('hiddenLastScoreDocId').value;
+    const docScore = document.getElementById('hiddenDocScore').value;
+    nextPageSearch(lastScoreDocId, docScore);
 }
 
-function nextPageSearch(page) {
+function nextPageSearch(lastScoreDocId, docScore) {
     const searchWord = document.getElementById('hiddenSearchWord').value;
     const searchType = document.getElementById('hiddenSearchType').value;
     const caseSensitive = document.getElementById('hiddenCaseSensitive').value;
@@ -251,7 +251,7 @@ function nextPageSearch(page) {
     showModal();
 
     // 비동기 요청 보내기 (POST)
-    fetch('/search/results', {
+    fetch('/search/next', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -262,7 +262,8 @@ function nextPageSearch(page) {
             "caseSensitive": caseSensitive,
             "fileExtension": fileExtension,
             "repositoryNames": repositoryNames,
-            "page": page  // 현재 페이지 번호
+            "lastScoreDocId": lastScoreDocId,  // 현재 페이지 번호
+            "docScore": docScore
         })
     })
         .then(response => response.json())  // JSON 형식의 응답 처리
@@ -344,6 +345,10 @@ function displaySearchResults(data, append = false) {
         });
 
         resultsContainer.appendChild(row);
+
+        // doc id 셋팅
+        document.getElementById('hiddenLastScoreDocId').value = data.docInfoDto.lastScoreDocId;
+        document.getElementById('hiddenDocScore').value = data.docInfoDto.docScore;
     });
 
     console.log("data create")
@@ -362,6 +367,10 @@ function displaySearchResults(data, append = false) {
         resultsSummary.textContent = `현재 ${displayedCnt}개 / 총 ${totalCnt}개`;
     // }, 3000);
      */
+    const resultsSummary = document.getElementById('resultsSummary');
+    totalCnt = data.totalCnt || 0;  // totalCnt 값을 받아옴 (기본값 0)
+    displayedCnt = document.querySelectorAll('.search-results tr').length || 0;  // 현재 표시된 결과 수
+    resultsSummary.textContent = `현재 ${displayedCnt}개 / 총 ${totalCnt}개`;
 }
 
 // 모달 제어 함수

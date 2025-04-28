@@ -195,6 +195,7 @@ public class IndexingTasklet implements Tasklet {
                                 doc.add(new IntPoint("lineNumber", i + 1)); // 검색용 숫자 필드
                                 doc.add(new StoredField("lineNumber", i + 1)); // 표시용 저장 필드
                                 doc.add(new TextField("lineContent", line, Field.Store.YES)); // 2-gram 분석용 줄 내용
+                                doc.add(new TextField("lineContentLowercase", line.toLowerCase(), Field.Store.YES)); // 대소문자 구문 안하는 용도
 
                                 // 인덱스에 문서 추가
                                 writer.addDocument(doc);
