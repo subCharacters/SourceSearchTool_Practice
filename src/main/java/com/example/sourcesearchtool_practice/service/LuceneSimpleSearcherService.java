@@ -11,10 +11,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.springframework.data.util.Pair;
@@ -24,9 +21,7 @@ import javax.print.Doc;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,7 +33,7 @@ public class LuceneSimpleSearcherService {
             String caseSensitive,
             String searchType,
             String fileExtension,
-            int lastScoreDocId ,
+            int lastScoreDocId,
             float score,
             int maxHits) throws Exception {
 
@@ -76,8 +71,10 @@ public class LuceneSimpleSearcherService {
         // 선택한 프로젝트들의 인덱스 Reader를 연다
         List<IndexReader> readers = new ArrayList<>();
 
+        String targetFolder = searchType.equals("file") ? "index_file" : "index_line";
         for (String projectName : projectNames) {
-            Path indexPath = Paths.get("index", projectName);
+            Path indexPath = Paths.get(targetFolder, projectName);
+
             Directory directory = FSDirectory.open(indexPath);
             readers.add(DirectoryReader.open(directory));
         }
@@ -92,10 +89,15 @@ public class LuceneSimpleSearcherService {
                 return new TokenStreamComponents(new NGramTokenizer(2, 2));
             }
         };
-
-        QueryParser parser = new QueryParser(caseSensitive.equals("ignore") ? "lineContentLowercase" : "lineContent", analyzer);
+        QueryParser parser = null;
+        Query query = null;
+        if (searchType.equals("file")) {
+            parser = new QueryParser(caseSensitive.equals("ignore") ? "fileContentLowercase" : "fileContent", analyzer);
+        } else {
+            parser = new QueryParser(caseSensitive.equals("ignore") ? "lineContentLowercase" : "lineContent", analyzer);
+        }
         parser.setDefaultOperator(QueryParser.Operator.AND); // 기본 연산을 AND로
-        Query query = parser.parse(caseSensitive.equals("ignore") ? keyword.toLowerCase() : keyword);
+        query = parser.parse(caseSensitive.equals("ignore") ? keyword.toLowerCase() : keyword);
 
         TopDocs hits;
         if (lastScoreDocId <= 0) {
@@ -105,18 +107,43 @@ public class LuceneSimpleSearcherService {
             hits = searcher.searchAfter(lastScoreDoc, query, maxHits);
         }
 
+        long totalCount = 0;
         for (ScoreDoc sd : hits.scoreDocs) {
             Document doc = searcher.doc(sd.doc);
-            results.add(new SearchResultDto(
-                    doc.get("repositoryName"),
-                    doc.get("fileName"),
-                    doc.get("filePath"),
-                    Integer.parseInt(doc.get("lineNumber")),
-                    doc.get(caseSensitive.equals("ignore") ? "lineContentLowercase" : "lineContent")
-            ));
+
+            if (searchType.equals("file")) { // 파일단위 검색
+                String fileContent = doc.get("fileContent");
+                List<String> lineNumbers = findMatchedLines(fileContent, keyword, caseSensitive);
+                if (lineNumbers.isEmpty()) {
+                    continue;
+                }
+
+                results.add(new SearchResultDto(
+                        doc.get("repositoryName"),
+                        doc.get("fileName"),
+                        doc.get("filePath"),
+                        String.join(",", lineNumbers),
+                        ""
+                ));
+            } else { // 행 단위 검색
+                results.add(new SearchResultDto(
+                        doc.get("repositoryName"),
+                        doc.get("fileName"),
+                        doc.get("filePath"),
+                        doc.get("lineNumber"),
+                        doc.get(caseSensitive.equals("ignore") ? "lineContentLowercase" : "lineContent")
+                ));
+            }
+
         }
+
         // 총 건수 가져오기
-        long totalCount = hits.totalHits.value;
+        // TODO 페이징 검색일때는 안하는게 좋음.
+        TotalHitCountCollector collector = new TotalHitCountCollector();
+        searcher.search(query, collector);
+        totalCount = collector.getTotalHits();
+
+        log.info(String.valueOf(totalCount));
 
         if (hits.scoreDocs.length <= 0) {
             multiReader.close();
@@ -126,11 +153,13 @@ public class LuceneSimpleSearcherService {
         ScoreDoc lastDoc = hits.scoreDocs[hits.scoreDocs.length - 1];
 
         multiReader.close();
-        return Pair.of(results, Pair.of(totalCount, new DocInfoDto(lastDoc.doc, lastDoc.score)));
+        return Pair.of(results, Pair.of(totalCount, new
+
+                DocInfoDto(lastDoc.doc, lastDoc.score)));
     }
 
     private List<String> getRepositoryList() {
-        File indexRoot = new File("index");
+        File indexRoot = new File("index_line");
         if (!indexRoot.exists() || !indexRoot.isDirectory()) {
             return List.of();
         }
@@ -143,5 +172,25 @@ public class LuceneSimpleSearcherService {
         return Arrays.stream(projectDirs)
                 .map(File::getName)
                 .collect(Collectors.toList());
+    }
+
+    private List<String> findMatchedLines(String fileContent, String keyword, String caseSensitive) {
+        List<String> matchedLines = new ArrayList<>();
+        String[] lines = fileContent.split("\n");
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            if ("ignore".equals(caseSensitive)) {
+                if (line.toLowerCase().contains(keyword.toLowerCase())) {
+                    matchedLines.add(String.valueOf(i + 1));
+                }
+            } else {
+                if (line.contains(keyword)) {
+                    // 성능은 떨어져도 2중 체크.
+                    matchedLines.add(String.valueOf(i + 1));
+                }
+            }
+        }
+
+        return matchedLines;
     }
 }

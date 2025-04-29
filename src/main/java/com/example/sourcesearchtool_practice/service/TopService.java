@@ -15,7 +15,7 @@ public class TopService {
     private List<String> extensions;
 
     public TopContentDto getTopRepoContents() {
-        File indexRoot = new File("index");
+        File indexRoot = new File("index_line");
         TopContentDto topContentDto = new TopContentDto();
         topContentDto.setExtensions(extensions);
         if (!indexRoot.exists() || !indexRoot.isDirectory()) {

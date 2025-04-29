@@ -376,7 +376,9 @@ function displaySearchResults(data, append = false) {
     // }, 3000);
      */
     const resultsSummary = document.getElementById('resultsSummary');
-    totalCnt = data.totalCnt || 0;  // totalCnt 값을 받아옴 (기본값 0)
+    if (!append) {
+        totalCnt = data.totalCnt || 0;  // totalCnt 값을 받아옴 (기본값 0)
+    }
     displayedCnt = document.querySelectorAll('.search-results tr').length || 0;  // 현재 표시된 결과 수
     resultsSummary.textContent = `현재 ${displayedCnt}개 / 총 ${totalCnt}개`;
 }

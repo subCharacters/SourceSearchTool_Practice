@@ -114,19 +114,22 @@ public class IndexingTasklet implements Tasklet {
                 .map(File::getName)
                 .collect(Collectors.toSet());
 
-        File indexRoot = new File("index");
-        if (!indexRoot.exists()) {
-            return; // 인덱스 폴더가 아예 없으면 할 게 없음
-        }
+        File[] indexRoots  = { new File("index_line"), new File("index_file") };
 
-        File[] indexedProjects = indexRoot.listFiles(File::isDirectory);
-        if (indexedProjects == null) return;
+        for (File indexRoot : indexRoots ) {
+            if (!indexRoot.exists()) {
+                continue; // 인덱스 폴더가 아예 없으면 할 게 없음
+            }
 
-        for (File indexed : indexedProjects) {
-            if (!currentProjectNames.contains(indexed.getName())) {
-                // 인덱싱할 프로젝트가 아닌 경우 삭제
-                deleteDirectory(indexed);
-                log.info("삭제된 프로젝트 인덱스 정리: {}", indexed.getName());
+            File[] indexedProjects = indexRoot.listFiles(File::isDirectory);
+            if (indexedProjects == null) continue;
+
+            for (File indexed : indexedProjects) {
+                if (!currentProjectNames.contains(indexed.getName())) {
+                    // 인덱싱할 프로젝트가 아닌 경우 삭제
+                    deleteDirectory(indexed);
+                    log.info("삭제된 프로젝트 인덱스 정리: {}", indexed.getName());
+                }
             }
         }
     }
@@ -145,14 +148,15 @@ public class IndexingTasklet implements Tasklet {
         }
     }
 
-    // TODO: 실제 Lucene 인덱싱 로직 구현 필요
     private void indexProject(File projectDir) throws Exception {
         // 프로젝트 루트 기준으로 하위 파일 재귀 탐색,
         // 확장자 및 제외 폴더 필터 적용,
         // 각 라인별로 Lucene 인덱싱 수행
         // 인덱스 저장 경로: index/프로젝트명
-        Path indexPath = Paths.get("index", projectDir.getName());
-        Directory directory = FSDirectory.open(indexPath);
+        Path lineIndexPath = Paths.get("index_line", projectDir.getName());
+        Path fileIndexPath = Paths.get("index_file", projectDir.getName());
+        Directory directory = FSDirectory.open(lineIndexPath );
+        Directory fileDirectory = FSDirectory.open(fileIndexPath);
 
         // 2-gram 분석기 구성
         Analyzer analyzer = new Analyzer() {
@@ -163,9 +167,14 @@ public class IndexingTasklet implements Tasklet {
             }
         };
 
-        IndexWriterConfig config = new IndexWriterConfig(analyzer);
-        config.setOpenMode(IndexWriterConfig.OpenMode.CREATE); // 인덱스 초기화
-        IndexWriter writer = new IndexWriter(directory, config);
+        IndexWriterConfig lineConfig  = new IndexWriterConfig(analyzer);
+        lineConfig .setOpenMode(IndexWriterConfig.OpenMode.CREATE); // 인덱스 초기화
+
+        IndexWriterConfig fileConfig = new IndexWriterConfig(analyzer);
+        fileConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
+
+        IndexWriter lineWriter = new IndexWriter(directory, lineConfig);
+        IndexWriter fileWriter = new IndexWriter(fileDirectory, fileConfig);
 
         try (Stream<Path> fileStream = Files.walk(projectDir.toPath())) {
             // 해당 프로젝트 폴더 하위의 모든 파일을 재귀적으로 탐색
@@ -183,6 +192,8 @@ public class IndexingTasklet implements Tasklet {
                         log.info("인덱싱 대상 파일: {}", path.toAbsolutePath());
                         try {
                             List<String> lines = Files.readAllLines(path);
+
+                            // 행 단위 인덱싱
                             for (int i = 0; i < lines.size(); i++) {
                                 String line = lines.get(i).trim();
                                 if (line.isEmpty()) continue; // 공백 줄 제외
@@ -198,7 +209,21 @@ public class IndexingTasklet implements Tasklet {
                                 doc.add(new TextField("lineContentLowercase", line.toLowerCase(), Field.Store.YES)); // 대소문자 구문 안하는 용도
 
                                 // 인덱스에 문서 추가
-                                writer.addDocument(doc);
+                                lineWriter.addDocument(doc);
+                            }
+
+                            // 파일 단위 인덱싱
+                            String fullContent = String.join("\n", lines).trim();
+                            if (!fullContent.isEmpty()) {
+                                Document fileDoc = new Document();
+                                fileDoc.add(new StringField("repositoryName", projectDir.getName(), Field.Store.YES));
+                                fileDoc.add(new StringField("fileName", path.getFileName().toString(), Field.Store.YES));
+                                fileDoc.add(new StringField("filePath", path.toString(), Field.Store.YES));
+                                fileDoc.add(new TextField("fileContent", fullContent, Field.Store.YES));
+                                fileDoc.add(new TextField("fileContentLowercase", fullContent.toLowerCase(), Field.Store.YES)); // 대소문자 구문 안하는 용도
+
+                                // 인덱스에 문서 추가
+                                fileWriter.addDocument(fileDoc);
                             }
                         } catch (IOException e) {
                             log.error("인덱싱 실패: {}", path, e);
@@ -210,8 +235,12 @@ public class IndexingTasklet implements Tasklet {
         }
 
         // 인덱스 커밋 및 종료
-        writer.commit();
-        writer.close();
-        log.info("인덱스 저장 완료: {}", indexPath);
+        lineWriter.commit();
+        lineWriter.close();
+
+        fileWriter.commit();
+        fileWriter.close();
+
+        log.info("인덱스 저장 완료: {}", lineIndexPath );
     }
 }
