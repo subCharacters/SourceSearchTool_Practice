@@ -43,4 +43,9 @@ public class TopController {
     public String internalError(Model model) throws Exception {
         throw new Exception("");
     }
+
+    @GetMapping("/indexing")
+    public String idexing(Model model) throws Exception {
+        return "indexing";
+    }
 }

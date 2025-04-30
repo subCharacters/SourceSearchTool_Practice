@@ -253,17 +253,25 @@ body {
 
 /* 페이지네이션 */
 .pagination {
-    /* position: sticky;  스크롤 시 화면 하단에 고정 */
-    bottom: 0; /* 화면 하단에 고정 */
-    left: 250px; /* 사이드바 크기만큼 왼쪽 여백 설정 */
-    /* width: calc(100% - 250px); /* 사이드바 크기를 제외한 나머지 공간을 차지 */
+/*    !* position: sticky;  스크롤 시 화면 하단에 고정 *!
+    bottom: 0; !* 화면 하단에 고정 *!
+    left: 250px; !* 사이드바 크기만큼 왼쪽 여백 설정 *!
+    !* width: calc(100% - 250px); !* 사이드바 크기를 제외한 나머지 공간을 차지 *!
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 10px 0;
     background-color: #f0f0f0;
     box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-    z-index: 1000; /* 다른 요소 위에 위치 */
+    z-index: 1000; !* 다른 요소 위에 위치 *!*/
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #f0f0f0;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
 }
 
 .pagination .page-number {
@@ -300,6 +308,30 @@ body {
     background-color: #2167f3;
     /*background: linear-gradient(90deg, #2ca1b5, #4b6ad4);*/ /* hover 시 더 진한 색상 */
     transform: translateY(-2px); /* hover 시 살짝 올라가는 애니메이션 */
+}
+
+.center-button {
+    margin: 0 auto;
+}
+
+.right-link {
+    margin-left: auto;
+}
+
+.indexing-link {
+    padding: 8px 15px;
+    background-color: #4caf50;
+    color: white;
+    text-decoration: none;
+    border-radius: 20px;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.indexing-link:hover {
+    background-color: #388e3c;
+    transform: translateY(-2px);
 }
 
 /* 모달 */

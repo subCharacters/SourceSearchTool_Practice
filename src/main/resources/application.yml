@@ -22,3 +22,7 @@ file:
 server:
   error:
     path: /error
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>인덱싱 실행</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 500px;
+      margin: 100px auto;
+      padding: 30px;
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #333;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .btn-start {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .btn-move {
+      background-color: #2196F3;
+      color: white;
+    }
+    #status {
+      margin-top: 20px;
+      color: #666;
+      text-align: center;
+    }
+    .btn-log {
+      display: inline-block;
+      padding: 10px 16px;
+      background-color: #666;
+      color: white;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .btn-log:hover {
+      background-color: #444;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>인덱싱 실행</h2>
+  <input type="text" id="sourcePath" placeholder="소스 경로를 입력하세요. 예: C:\\gitProjects">
+  <div style="text-align:center;">
+    <button class="btn-start" onclick="startIndexing()">인덱싱 시작</button>
+    <button class="btn-move" onclick="location.href='/top'">검색 페이지로 이동</button>
+  </div>
+  <div id="logLink" style="display:block; margin-top: 10px; text-align:center;">
+    <a href="/logs/application.log" target="_blank" class="btn-log">📄 로그 확인</a>
+  </div>
+  <div id="status"></div>
+</div>
+
+<script>
+  function startIndexing() {
+    const sourcePath = document.getElementById("sourcePath").value;
+    const status = document.getElementById("status");
+
+    if (!sourcePath) {
+      alert("경로를 입력하세요.");
+      return;
+    }
+
+    status.innerText = "인덱싱 요청 중...";
+
+    fetch("/run-indexing", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ sourcePath })
+    })
+            .then(response => {
+              if (response.ok) {
+                status.innerText = "✅ 인덱싱 작업이 끝났습니다. \n 결과는 로그를 확인해주세요.";
+              } else {
+                status.innerText = "❌ 인덱싱 요청 실패. 콘솔 로그를 확인하세요.";
+              }
+            })
+            .catch(err => {
+              console.error(err);
+              status.innerText = "❌ 오류 발생.";
+            });
+  }
+</script>
+</body>
+</html>

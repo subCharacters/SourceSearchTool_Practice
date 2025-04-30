@@ -36,6 +36,24 @@ public class FileSearchStrategy implements SearchStrategy {
 
     @Override
     public Pair<List<SearchResultDto>, Pair<Long, DocInfoDto>> search(RequestDto requestDto, int maxHits) throws Exception {
+        log.info("\n====== Search Parameters ======\n" +
+                        "🔹 Project(s): {}\n" +
+                        "🔹 Keyword: '{}'\n" +
+                        "🔹 Case Sensitive: {}\n" +
+                        "🔹 Search Type: {}\n" +
+                        "🔹 Max Hits: {}\n" +
+                        "🔹 lastScoreDocId: {}\n" +
+                        "🔹 score: {}\n" +
+                        "===============================",
+                requestDto.getRepositoryNames() != null ? requestDto.getRepositoryNames() : "전체",
+                requestDto.getSearchWord(),
+                requestDto.getCaseSensitive(),
+                requestDto.getSearchType(),
+                maxHits,
+                requestDto.getLastScoreDocId(),
+                requestDto.getDocScore()
+        );
+
         // 0) dto로부터 값 설정
         String searchKeyword = requestDto.getSearchWord();
         boolean isCaseSensitive = requestDto.getCaseSensitive().equals("case"); // 대소문자 구분인가. true : 한다, false : 안한다
@@ -104,6 +122,7 @@ public class FileSearchStrategy implements SearchStrategy {
 
         if (hits.scoreDocs.length <= 0) {
             multiReader.close();
+            log.info("검색어 {}: 0건", searchKeyword);
             throw new NoSearchResultException("검색 결과가 없습니다.");
         }
 
