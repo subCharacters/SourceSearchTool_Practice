@@ -1,19 +1,22 @@
 package com.example.sourcesearchtool_practice.contorller.advice;
 
-import com.example.sourcesearchtool_practice.dto.DocInfoDto;
-import com.example.sourcesearchtool_practice.dto.ErrorDto;
-import com.example.sourcesearchtool_practice.dto.ResponseDto;
 import com.example.sourcesearchtool_practice.exception.NoSearchResultException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-@RestControllerAdvice
+@ControllerAdvice
 public class GlobalExceptionHandler {
-    @ExceptionHandler(NoSearchResultException.class)
-    public ResponseEntity<ResponseDto> handleNoSearchResult(NoSearchResultException ex) {
-        ErrorDto errorDto = new ErrorDto("search", ex.getMessage());
-        return ResponseDto.fail(HttpStatus.NOT_FOUND, null, errorDto, 0, new DocInfoDto(-1, Float.NaN));
+    @ExceptionHandler(Exception.class)
+    public String handleServerError(Exception ex, Model model) {
+        model.addAttribute("message", "서버 에러가 발생했습니다.");
+        return "error/500";
+    }
+
+    @ExceptionHandler({NoSearchResultException.class, NoResourceFoundException.class})
+    public String handleNoResult(Exception ex, Model model) {
+        model.addAttribute("message", ex.getMessage());
+        return "error/404";
     }
 }
