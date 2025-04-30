@@ -1,12 +1,8 @@
-package com.example.sourcesearchtool_practice.indexing.tasklet;
+package com.example.sourcesearchtool_practice.indexing.tasklet.legacy;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.ngram.NGramTokenFilter;
 import org.apache.lucene.analysis.ngram.NGramTokenizer;
-import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -114,9 +110,9 @@ public class IndexingTasklet implements Tasklet {
                 .map(File::getName)
                 .collect(Collectors.toSet());
 
-        File[] indexRoots  = { new File("index_line"), new File("index_file") };
+        File[] indexRoots = {new File("index_line"), new File("index_file")};
 
-        for (File indexRoot : indexRoots ) {
+        for (File indexRoot : indexRoots) {
             if (!indexRoot.exists()) {
                 continue; // 인덱스 폴더가 아예 없으면 할 게 없음
             }
@@ -155,7 +151,7 @@ public class IndexingTasklet implements Tasklet {
         // 인덱스 저장 경로: index/프로젝트명
         Path lineIndexPath = Paths.get("index_line", projectDir.getName());
         Path fileIndexPath = Paths.get("index_file", projectDir.getName());
-        Directory directory = FSDirectory.open(lineIndexPath );
+        Directory directory = FSDirectory.open(lineIndexPath);
         Directory fileDirectory = FSDirectory.open(fileIndexPath);
 
         // 2-gram 분석기 구성
@@ -167,8 +163,8 @@ public class IndexingTasklet implements Tasklet {
             }
         };
 
-        IndexWriterConfig lineConfig  = new IndexWriterConfig(analyzer);
-        lineConfig .setOpenMode(IndexWriterConfig.OpenMode.CREATE); // 인덱스 초기화
+        IndexWriterConfig lineConfig = new IndexWriterConfig(analyzer);
+        lineConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE); // 인덱스 초기화
 
         IndexWriterConfig fileConfig = new IndexWriterConfig(analyzer);
         fileConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
@@ -241,6 +237,6 @@ public class IndexingTasklet implements Tasklet {
         fileWriter.commit();
         fileWriter.close();
 
-        log.info("인덱스 저장 완료: {}", lineIndexPath );
+        log.info("인덱스 저장 완료: {}", lineIndexPath);
     }
 }

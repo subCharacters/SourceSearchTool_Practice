@@ -1,4 +1,4 @@
-package com.example.sourcesearchtool_practice.service;
+package com.example.sourcesearchtool_practice.service.legacy;
 
 import com.example.sourcesearchtool_practice.dto.DocInfoDto;
 import com.example.sourcesearchtool_practice.dto.SearchResultDto;
@@ -17,7 +17,6 @@ import org.apache.lucene.store.FSDirectory;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 
-import javax.print.Doc;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -59,6 +58,7 @@ public class LuceneSimpleSearcherService {
 
         List<SearchResultDto> results = new ArrayList<>();
 
+        // TODO 컨트롤러로 빼기.
         if (keyword.length() < 2) {
             return Pair.of(results, Pair.of(0L, new DocInfoDto(0, 0f))); // 2자 미만이면 검색 안함
         }
@@ -153,9 +153,7 @@ public class LuceneSimpleSearcherService {
         ScoreDoc lastDoc = hits.scoreDocs[hits.scoreDocs.length - 1];
 
         multiReader.close();
-        return Pair.of(results, Pair.of(totalCount, new
-
-                DocInfoDto(lastDoc.doc, lastDoc.score)));
+        return Pair.of(results, Pair.of(totalCount, new DocInfoDto(lastDoc.doc, lastDoc.score)));
     }
 
     private List<String> getRepositoryList() {
